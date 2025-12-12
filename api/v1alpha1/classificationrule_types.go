@@ -32,7 +32,7 @@ type ClassificationRuleSpec struct {
 	// Key = field name (e.g., "image", "name", "namespace")
 	// Value = expected value to match (e.g., "nginx", "prod_proxy", "production")
 	// + optional
-	Match map[string]string `json:"match,omitempty"`
+	Match *MatchCriteria `json:"match,omitempty"`
 
 	// Labels defines the labels to apply when a resource matches the rule
 	// Key = label name
@@ -44,29 +44,84 @@ type ClassificationRuleSpec struct {
 	// +kubebuilder:validation:Enum=Overwrite;Merge;Ignore;Error
 	// +kubebuilder:default=Merge
 	ConflictPolicy string `json:"conflictPolicy,omitempty"`
+
+	// Suspend temporarily disables the application of this classification rule
+	// +optional
+	// +kubebuilder:default=false
+	Suspend bool `json:"suspend,omitempty"`
+}
+
+// MatchCriteria defines the criteria that maps resource fields to expected values
+type MatchCriteria struct {
+
+	// General information
+	Images       []string          `json:"images,omitempty"`
+	Annotations  map[string]string `json:"annotations,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"`
+	Name         string            `json:"name,omitempty"`
+	Namespace    string            `json:"namespace,omitempty"`
+	Status       string            `json:"status,omitempty"`
+	ReplicaCount int32             `json:"replicaCount,omitempty"`
+
+	// Deployment related information
+	Strategy       string `json:"strategy,omitempty"`
+	UpdateStrategy string `json:"updateStrategy,omitempty"`
+
+	// RBAC related information
+	Roles          []string `json:"roles,omitempty"`
+	ClusterRoles   []string `json:"clusterRoles,omitempty"`
+	ServiceAccount string   `json:"serviceAccount,omitempty"`
+
+	// Networking related information
+	Ports       []int32 `json:"ports,omitempty"`
+	HostNetwork *bool   `json:"hostNetwork,omitempty"`
+	IPFamily    string  `json:"ipFamily,omitempty"`
+
+	// Storage related information
+	Volumes       []string `json:"volumes,omitempty"`
+	StorageClass  string   `json:"storageClass,omitempty"`
+	AccessModes   []string `json:"accessModes,omitempty"`
+	VolumeBinding string   `json:"volumeBinding,omitempty"`
+
+	// Scheduling related information
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	Tolerations  []string          `json:"tolerations,omitempty"`
+	Affinity     string            `json:"affinity,omitempty"`
+	Topology     string            `json:"topology,omitempty"`
+	Taints       []string          `json:"taints,omitempty"`
+
+	// Resource requirements
+	CPURequests    string `json:"cpuRequests,omitempty"`
+	CPULimits      string `json:"cpuLimits,omitempty"`
+	MemoryRequests string `json:"memoryRequests,omitempty"`
+	MemoryLimits   string `json:"memoryLimits,omitempty"`
 }
 
 // ClassificationRuleStatus defines the observed state of ClassificationRule.
 type ClassificationRuleStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// For Kubernetes API conventions, see:
-	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
-
-	// conditions represent the current state of the ClassificationRule resource.
-	// Each condition has a unique type and reflects the status of a specific aspect of the resource.
-	//
-	// Standard condition types include:
-	// - "Available": the resource is fully functional
-	// - "Progressing": the resource is being created or updated
-	// - "Degraded": the resource failed to reach or maintain its desired state
-	//
 	// The status of each condition is one of True, False, or Unknown.
 	// +listType=map
 	// +listMapKey=type
+	//+ patchStrategy=merge
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// lastAppliedTime indicates the last time the rule was successfully applied.
+	// +optional
+	LastReconciled *metav1.Time `json:"lastReconciled,omitempty"`
+
+	// matchedResourcesCount indicates the number of resources that matched this rule.
+	// +optional
+	MatchedResourcesCount int32 `json:"MatchedResourceCount,omitempty"`
+
+	// lastError provides details of the last error encountered while applying the rule.
+	// +optional
+	LastError string `json:"lastError,omitempty"`
+
+	// observedGeneration is the most recent generation observed for this ClassificationRule.
+	// It corresponds to the ClassificationRule's generation, which is updated on mutation by the API Server.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true
