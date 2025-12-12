@@ -41,7 +41,8 @@ type ClassificationRuleReconciler struct {
 // +kubebuilder:rbac:groups=autolabeller.autolabeller.github.com,resources=classificationrules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=autolabeller.autolabeller.github.com,resources=classificationrules/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=autolabeller.autolabeller.github.com,resources=classificationrules/finalizers,verbs=update
-// +kubebuilder:rbac:groups=core,resources=pods,nodes,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
