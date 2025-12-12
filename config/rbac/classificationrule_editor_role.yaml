@@ -1,0 +1,33 @@
+# This rule is not used by the project autolabeller itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants permissions to create, update, and delete resources within the autolabeller.autolabeller.github.com.
+# This role is intended for users who need to manage these resources
+# but should not control RBAC or manage permissions for others.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: autolabeller
+    app.kubernetes.io/managed-by: kustomize
+  name: classificationrule-editor-role
+rules:
+- apiGroups:
+  - autolabeller.autolabeller.github.com
+  resources:
+  - classificationrules
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - autolabeller.autolabeller.github.com
+  resources:
+  - classificationrules/status
+  verbs:
+  - get

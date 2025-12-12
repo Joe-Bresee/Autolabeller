@@ -1,0 +1,9 @@
+apiVersion: autolabeller.autolabeller.github.com/v1alpha1
+kind: ClassificationRule
+metadata:
+  labels:
+    app.kubernetes.io/name: autolabeller
+    app.kubernetes.io/managed-by: kustomize
+  name: classificationrule-sample
+spec:
+  # TODO(user): Add fields here
