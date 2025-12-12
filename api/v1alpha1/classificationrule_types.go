@@ -20,19 +20,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // ClassificationRuleSpec defines the desired state of ClassificationRule
 type ClassificationRuleSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
-	// foo is an example field of ClassificationRule. Edit classificationrule_types.go to remove/update
-	// +optional
-	Foo *string `json:"foo,omitempty"`
+	// TargetKind specifies the Kubernetes resource type to apply the rule to
+	// +kubebuilder:validation:Enum=Pod;Node;Namespace;Service;Deployment;StatefulSet;DaemonSet;ReplicaSet;Job;CronJob
+	// +kubebuilder:default=Pod
+	TargetKind string `json:"targetKind"`
+
+	// Match defines the resource fields to match for labelling
+	// Key = field name (e.g., "image", "name", "namespace")
+	// Value = expected value to match (e.g., "nginx", "prod_proxy", "production")
+	// + optional
+	Match map[string]string `json:"match,omitempty"`
+
+	// Labels defines the labels to apply when a resource matches the rule
+	// Key = label name
+	// Value = label value
+	// + optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// ConflictPolicy defines the policy to apply when there is a conflict in labeling
+	// +kubebuilder:validation:Enum=Overwrite;Merge;Ignore;Error
+	// +kubebuilder:default=Merge
+	ConflictPolicy string `json:"conflictPolicy,omitempty"`
 }
 
 // ClassificationRuleStatus defines the observed state of ClassificationRule.

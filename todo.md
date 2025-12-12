@@ -134,3 +134,11 @@
 - Every feature should have corresponding unit and integration tests
 - Security should be reviewed at each priority level
 - Documentation should be updated alongside code changes
+
+
+MILESTONE 1:
+Scaffold project and CRD
+Implement Pod labeling controller
+Apply labels based on simple metadata rules
+Status reporting
+Test in local cluster
