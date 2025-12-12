@@ -86,12 +86,15 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		for i := range pods.Items {
 			pod := &pods.Items[i]
-			if MatchesPod(rule.Spec.Match, pod) && ApplyLabelsToObject(pod, rule.Spec.Labels) {
-				if err := r.Update(ctx, pod); err != nil {
-					log.Error(err, "failed to update pod labels", "pod", client.ObjectKeyFromObject(pod))
-					continue
+			if ok, fields := MatchesPodDetailed(rule.Spec.Match, pod); ok {
+				log.Info("pod matched criteria", "pod", client.ObjectKeyFromObject(pod), "matchedFields", fields)
+				if ApplyLabelsToObject(pod, rule.Spec.Labels) {
+					if err := r.Update(ctx, pod); err != nil {
+						log.Error(err, "failed to update pod labels", "pod", client.ObjectKeyFromObject(pod))
+						continue
+					}
+					matched++
 				}
-				matched++
 			}
 		}
 	default:

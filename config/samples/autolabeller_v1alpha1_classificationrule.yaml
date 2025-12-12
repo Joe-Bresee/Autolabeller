@@ -6,4 +6,24 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: classificationrule-sample
 spec:
-  # TODO(user): Add fields here
+  targetKind: Pod
+  Match:
+    commonMatch:
+      Namespace:  "superfunnynamespace"
+      Name: "superfunnyname"
+
+    podMatch:
+      Images: 
+        - "busybox:latest"
+      CPURequests:
+        Min: "100m"
+        Max: "500m"
+      MemoryRequests:
+        Min: "128Mi"
+        Max: "512Mi"
+
+  Labels:
+    superfunnytestlabel: "didLaugh"
+
+  ConflictPolicy: Merge
+  Suspend: false

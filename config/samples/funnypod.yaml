@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: superfunnyname
+  namespace: superfunnynamespace
+  labels:
+    app: mypod
+spec:
+  serviceAccountName: default
+  restartPolicy: Always
+  containers:
+    - name: busybox
+      image: busybox:latest
+      command: ["/bin/sh", "-c", "echo funny && sleep 3600"]
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "400m"
+          memory: "384Mi"

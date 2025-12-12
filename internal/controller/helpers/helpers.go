@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,61 +54,91 @@ func ApplyLabelsToObject(obj client.Object, labels map[string]string) bool {
 	return changed
 }
 
-func MatchesPod(mc *autolabellerv1alpha1.MatchCriteria, pod *corev1.Pod) bool {
+// MatchesPodDetailed returns whether the pod matches and a list of fields that matched.
+func MatchesPodDetailed(mc *autolabellerv1alpha1.MatchCriteria, pod *corev1.Pod) (bool, []string) {
+	matchedFields := []string{}
 	if mc == nil {
-		return true
+		return true, matchedFields
 	}
+
 	if cm := mc.CommonMatch; cm != nil {
-		if ns := cm.Namespace; ns != "" && pod.Namespace != ns {
-			return false
+		if ns := cm.Namespace; ns != "" {
+			if pod.Namespace != ns {
+				return false, matchedFields
+			}
+			matchedFields = append(matchedFields, "commonMatch.namespace")
 		}
-		if name := cm.Name; name != "" && pod.Name != name {
-			return false
+		if name := cm.Name; name != "" {
+			if pod.Name != name {
+				return false, matchedFields
+			}
+			matchedFields = append(matchedFields, "commonMatch.name")
 		}
 		for k, v := range cm.Labels {
 			if pod.Labels[k] != v {
-				return false
+				return false, matchedFields
 			}
+			matchedFields = append(matchedFields, fmt.Sprintf("commonMatch.labels[%s]", k))
 		}
 		for k, v := range cm.Annotations {
 			if pod.Annotations[k] != v {
-				return false
+				return false, matchedFields
 			}
+			matchedFields = append(matchedFields, fmt.Sprintf("commonMatch.annotations[%s]", k))
 		}
 	}
+
 	if pm := mc.PodMatch; pm != nil {
-		if pm.HostNetwork != nil && pod.Spec.HostNetwork != *pm.HostNetwork {
-			return false
+		if pm.HostNetwork != nil {
+			if pod.Spec.HostNetwork != *pm.HostNetwork {
+				return false, matchedFields
+			}
+			matchedFields = append(matchedFields, "podMatch.hostNetwork")
 		}
-		if pm.ServiceAccount != "" && pod.Spec.ServiceAccountName != pm.ServiceAccount {
-			return false
+		if pm.ServiceAccount != "" {
+			if pod.Spec.ServiceAccountName != pm.ServiceAccount {
+				return false, matchedFields
+			}
+			matchedFields = append(matchedFields, "podMatch.serviceAccount")
 		}
 		if len(pm.NodeSelector) > 0 {
 			for k, v := range pm.NodeSelector {
 				if pod.Spec.NodeSelector[k] != v {
-					return false
+					return false, matchedFields
 				}
+				matchedFields = append(matchedFields, fmt.Sprintf("podMatch.nodeSelector[%s]", k))
 			}
 		}
-		if pm.RestartPolicy != "" && string(pod.Spec.RestartPolicy) != pm.RestartPolicy {
-			return false
+		if pm.RestartPolicy != "" {
+			if string(pod.Spec.RestartPolicy) != pm.RestartPolicy {
+				return false, matchedFields
+			}
+			matchedFields = append(matchedFields, "podMatch.restartPolicy")
 		}
 		if len(pm.Images) > 0 {
 			images := map[string]struct{}{}
 			for _, c := range pod.Spec.Containers {
 				images[c.Image] = struct{}{}
 			}
-			matchedAny := false
+			matchedAny := ""
 			for _, want := range pm.Images {
 				if _, ok := images[want]; ok {
-					matchedAny = true
+					matchedAny = want
 					break
 				}
 			}
-			if !matchedAny {
-				return false
+			if matchedAny == "" {
+				return false, matchedFields
 			}
+			matchedFields = append(matchedFields, fmt.Sprintf("podMatch.images:%s", matchedAny))
 		}
 	}
-	return true
+
+	return true, matchedFields
+}
+
+// MatchesPod keeps backward compatibility while providing details.
+func MatchesPod(mc *autolabellerv1alpha1.MatchCriteria, pod *corev1.Pod) bool {
+	ok, _ := MatchesPodDetailed(mc, pod)
+	return ok
 }
