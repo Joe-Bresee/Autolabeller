@@ -51,50 +51,24 @@ type ClassificationRuleSpec struct {
 	Suspend bool `json:"suspend,omitempty"`
 }
 
-// MatchCriteria defines the criteria that maps resource fields to expected values
+// MatchCriteria defines the criteria for matching resources.
+// It contains common fields plus resource-type-specific matchers.
 type MatchCriteria struct {
+	// Common criteria applicable to all resource types
+	// +optional
+	CommonMatch *CommonMatchCriteria `json:"commonMatch,omitempty"`
 
-	// General information
-	Images       []string          `json:"images,omitempty"`
-	Annotations  map[string]string `json:"annotations,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Name         string            `json:"name,omitempty"`
-	Namespace    string            `json:"namespace,omitempty"`
-	Status       string            `json:"status,omitempty"`
-	ReplicaCount int32             `json:"replicaCount,omitempty"`
+	// Pod-specific match criteria
+	// +optional
+	PodMatch *PodMatchCriteria `json:"podMatch,omitempty"`
 
-	// Deployment related information
-	Strategy       string `json:"strategy,omitempty"`
-	UpdateStrategy string `json:"updateStrategy,omitempty"`
+	// Node-specific match criteria
+	// +optional
+	NodeMatch *NodeMatchCriteria `json:"nodeMatch,omitempty"`
 
-	// RBAC related information
-	Roles          []string `json:"roles,omitempty"`
-	ClusterRoles   []string `json:"clusterRoles,omitempty"`
-	ServiceAccount string   `json:"serviceAccount,omitempty"`
-
-	// Networking related information
-	Ports       []int32 `json:"ports,omitempty"`
-	HostNetwork *bool   `json:"hostNetwork,omitempty"`
-	IPFamily    string  `json:"ipFamily,omitempty"`
-
-	// Storage related information
-	Volumes       []string `json:"volumes,omitempty"`
-	StorageClass  string   `json:"storageClass,omitempty"`
-	AccessModes   []string `json:"accessModes,omitempty"`
-	VolumeBinding string   `json:"volumeBinding,omitempty"`
-
-	// Scheduling related information
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	Tolerations  []string          `json:"tolerations,omitempty"`
-	Affinity     string            `json:"affinity,omitempty"`
-	Topology     string            `json:"topology,omitempty"`
-	Taints       []string          `json:"taints,omitempty"`
-
-	// Resource requirements
-	CPURequests    string `json:"cpuRequests,omitempty"`
-	CPULimits      string `json:"cpuLimits,omitempty"`
-	MemoryRequests string `json:"memoryRequests,omitempty"`
-	MemoryLimits   string `json:"memoryLimits,omitempty"`
+	// Deployment-specific match criteria
+	// +optional
+	DeploymentMatch *DeploymentMatchCriteria `json:"deploymentMatch,omitempty"`
 }
 
 // ClassificationRuleStatus defines the observed state of ClassificationRule.
