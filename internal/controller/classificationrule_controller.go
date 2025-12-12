@@ -18,13 +18,18 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	autolabellerv1alpha1 "github.com/Joe-Bresee/Autolabeller/api/v1alpha1"
+	. "github.com/Joe-Bresee/Autolabeller/internal/controller/helpers"
 )
 
 // ClassificationRuleReconciler reconciles a ClassificationRule object
@@ -39,17 +44,66 @@ type ClassificationRuleReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the ClassificationRule object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
+
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.4/pkg/reconcile
 func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log := logf.FromContext(ctx)
 
-	// TODO(user): your logic here
+	// Fetch rule
+	var rule autolabellerv1alpha1.ClassificationRule
+	if err := r.Get(ctx, req.NamespacedName, &rule); err != nil {
+		if kerrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Guard suspend
+	if rule.Spec.Suspend {
+		SetCondition(&rule, "Suspended", metav1.ConditionTrue, "RuleSuspended", "Rule is suspended")
+		_ = r.Status().Update(ctx, &rule)
+		return ctrl.Result{}, nil
+	}
+
+	matched := int32(0)
+	switch rule.Spec.TargetKind {
+	case "Pod":
+		var pods corev1.PodList
+		listOpts := []client.ListOption{}
+		if rule.Spec.Match != nil && rule.Spec.Match.CommonMatch != nil {
+			ns := rule.Spec.Match.CommonMatch.Namespace
+			if ns != "" {
+				listOpts = append(listOpts, client.InNamespace(ns))
+			}
+		}
+		if err := r.List(ctx, &pods, listOpts...); err != nil {
+			SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list pods: %v", err))
+			_ = r.Status().Update(ctx, &rule)
+			return ctrl.Result{}, err
+		}
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+			if MatchesPod(rule.Spec.Match, pod) && ApplyLabelsToObject(pod, rule.Spec.Labels) {
+				if err := r.Update(ctx, pod); err != nil {
+					log.Error(err, "failed to update pod labels", "pod", client.ObjectKeyFromObject(pod))
+					continue
+				}
+				matched++
+			}
+		}
+	default:
+		SetCondition(&rule, "Ready", metav1.ConditionFalse, "UnsupportedTarget", fmt.Sprintf("TargetKind %s not yet implemented", rule.Spec.TargetKind))
+		_ = r.Status().Update(ctx, &rule)
+		return ctrl.Result{}, nil
+	}
+
+	rule.Status.MatchedResourcesCount = matched
+	rule.Status.ObservedGeneration = rule.GetGeneration()
+	SetCondition(&rule, "Ready", metav1.ConditionTrue, "Applied", fmt.Sprintf("Applied labels to %d resources", matched))
+	if err := r.Status().Update(ctx, &rule); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
