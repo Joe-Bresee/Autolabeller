@@ -7,23 +7,20 @@ metadata:
   name: classificationrule-sample
 spec:
   targetKind: Pod
-  Match:
+  match:
     commonMatch:
-      Namespace:  "superfunnynamespace"
-      Name: "superfunnyname"
-
+      namespace: superfunnynamespace
+      name: superfunnyname
+      labels:
+        app: mypod
     podMatch:
-      Images: 
-        - "busybox:latest"
-      CPURequests:
-        Min: "100m"
-        Max: "500m"
-      MemoryRequests:
-        Min: "128Mi"
-        Max: "512Mi"
-
-  Labels:
+      images:
+        - busybox:latest
+      cpuRequests: "<=500m"
+      memoryRequests: "<=512Mi"
+  labels:
     superfunnytestlabel: "didLaugh"
+  conflictPolicy: Merge
+  suspend: false
 
-  ConflictPolicy: Merge
-  Suspend: false
+  refreshInterval: "5s"

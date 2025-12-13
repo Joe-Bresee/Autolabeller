@@ -191,6 +191,13 @@ spec:
                         type: string
                     type: object
                 type: object
+              refreshInterval:
+                default: 30s
+                description: |-
+                  RefreshInterval defines how often the rule should be re-evaluated and reapplied.
+                  Must be a valid duration string (e.g., "30s", "5m", "1h").
+                  Defaults to 30s if not specified.
+                type: string
               suspend:
                 default: false
                 description: Suspend temporarily disables the application of this

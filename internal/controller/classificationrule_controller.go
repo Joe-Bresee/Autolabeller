@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -110,7 +111,20 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	// Compute reqeue Interval
+	requeueAfter := 30 * time.Second // default
+	if rule.Spec.RefreshInterval != "" {
+		d, err := time.ParseDuration(rule.Spec.RefreshInterval)
+		if err != nil {
+			SetCondition(&rule, "Degraded", metav1.ConditionTrue, "InvalidRefreshInterval", "RefreshInterval must be a valid duration (e.g. 30s, 5m)")
+			_ = r.Status().Update(ctx, &rule)
+			return ctrl.Result{}, nil
+		}
+		requeueAfter = d
+	}
+
+	log.Info("Reconcile completed", "requeueAfter", requeueAfter.String())
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

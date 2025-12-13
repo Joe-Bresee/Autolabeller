@@ -49,6 +49,13 @@ type ClassificationRuleSpec struct {
 	// +optional
 	// +kubebuilder:default=false
 	Suspend bool `json:"suspend,omitempty"`
+
+	// RefreshInterval defines how often the rule should be re-evaluated and reapplied.
+	// Must be a valid duration string (e.g., "30s", "5m", "1h").
+	// Defaults to 30s if not specified.
+	// +optional
+	// +kubebuilder:default="30s"
+	RefreshInterval string `json:"refreshInterval,omitempty"`
 }
 
 // MatchCriteria defines the criteria for matching resources.

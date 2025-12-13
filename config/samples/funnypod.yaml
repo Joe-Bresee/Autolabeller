@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: superfunnyname
+  name: notsosuperfunnyname
   namespace: superfunnynamespace
   labels:
     app: mypod
