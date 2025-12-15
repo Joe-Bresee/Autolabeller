@@ -102,7 +102,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 		var nodes corev1.NodeList
 		listOpts := []client.ListOption{}
 		if rule.Spec.Match != nil && rule.Spec.Match.NodeMatch != nil {
-			//
+			helpers.FilterNodeList(&listOpts, rule.Spec.Match)
 		}
 		if err := r.List(ctx, &nodes, listOpts...); err != nil {
 			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list nodes: %v", err))

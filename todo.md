@@ -170,3 +170,29 @@ Implement Pod labeling controller
 Apply labels based on simple metadata rules
 Status reporting
 Test in local cluster
+
+
+Immediate tasks (current feature completion):
+
+Wire up filter helpers in controller - Already done (Pod & Node cases call FilterPodList/FilterNodeList)
+Test the filters - Verify namespace/label selectors actually reduce list results
+Handle edge cases - Empty match criteria, nil checks (already covered in helpers)
+Next priority resources to implement (from TargetKind enum & todo):
+
+Deployment - Has DeploymentMatchCriteria defined but no matcher/filter/reconciler case
+Namespace - Listed in TargetKind enum, no match criteria yet
+Service - Listed in TargetKind enum, no match criteria yet
+StatefulSet, DaemonSet, ReplicaSet - Listed in TargetKind enum, no match criteria yet
+Job, CronJob - Listed in TargetKind enum, no match criteria yet
+Recommended next steps:
+
+Test current Pod/Node filtering works correctly
+Implement Deployment matching (already has DeploymentMatchCriteria spec):
+Create matchinglogic/deployment_match.go with MatchesDeploymentDetailed
+Create FilterDeploymentList helper (namespace + labels only)
+Add Deployment case to reconciler switch
+Add RBAC markers for Deployments
+Add Service/Namespace matchers (simpler—mostly common criteria)
+Tackle workload resources (StatefulSet, DaemonSet, etc.) using similar patterns
+Current state: Pod & Node are functionally complete for filtering. Deployment is next logical target since match criteria already exist.
+

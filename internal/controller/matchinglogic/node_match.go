@@ -104,9 +104,3 @@ func MatchesNodeDetailed(mc *autolabellerv1alpha1.MatchCriteria, node *corev1.No
 
 	return true, matchedFields
 }
-
-// MatchesNode is a convenience wrapper returning only the boolean match result.
-func MatchesNode(mc *autolabellerv1alpha1.MatchCriteria, node *corev1.Node) bool {
-	ok, _ := MatchesNodeDetailed(mc, node)
-	return ok
-}
