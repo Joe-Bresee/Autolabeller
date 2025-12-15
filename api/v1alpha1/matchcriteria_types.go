@@ -1,6 +1,6 @@
 package v1alpha1
 
-// CommonMatchCriteria contains criteria common to all or most resource types
+// CommonMatchCriteria contains criteria common to most resource types
 type CommonMatchCriteria struct {
 	// Labels is a map of label keys and values to match
 	// +optional

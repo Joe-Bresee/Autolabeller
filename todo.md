@@ -1,37 +1,34 @@
 # Autolabeller TODO List
 
-## Priority 1: Core API Definition
-- [ ] **T1.1**: Define ClassificationRuleSpec fields (targetKind, match, labels, conflictPolicy)
-- [ ] **T1.2**: Define match criteria types (ImageMatch, ResourceMatch, AnnotationMatch, LabelMatch, NamespaceSelectorMatch, NodeSelectorMatch, TaintMatch)
-- [ ] **T1.3**: Add validation markers and CEL rules for ClassificationRule
-- [ ] **T1.4**: Define ClassificationRuleStatus fields (matchedResourceCount, lastReconciled, conflicts, lastError)
-- [ ] **T1.5**: Run `make generate` and `make manifests` to update CRD
-- [ ] **T1.6**: Create sample ClassificationRule manifests in config/samples/
+## Priority 1: Core API Definition ✅ COMPLETE
+- [X] **T1.1**: Define ClassificationRuleSpec fields (targetKind, match, labels, conflictPolicy, suspend, refreshInterval)
+- [X] **T1.2**: Define match criteria types split by resource (CommonMatchCriteria, PodMatchCriteria, NodeMatchCriteria, DeploymentMatchCriteria) in separate file
+- [ ] **T1.3**: Add advanced validation markers and CEL rules for ClassificationRule
+- [X] **T1.4**: Define ClassificationRuleStatus fields (matchedResourceCount, conditions, lastError, observedGeneration)
+- [X] **T1.5**: Create/refactor sample ClassificationRule manifests
+- [X] **T1.6**: Generate CRD manifests successfully
+- [X] **T1.7**: Create sample test Pod (funnypod.yaml) for manual testing
 
 ## Priority 2: Match Criteria Engine
-- [ ] **T2.1**: Implement match criteria interface and registry
-- [ ] **T2.2**: Implement ImageMatcher for container image pattern matching
-- [ ] **T2.3**: Implement ResourceRequirementsMatcher (CPU, memory comparison)
-- [ ] **T2.4**: Implement AnnotationMatcher with regex support
-- [ ] **T2.5**: Implement LabelMatcher
-- [ ] **T2.6**: Implement NamespaceSelectorMatcher
-- [ ] **T2.7**: Implement NodeSelectorMatcher
-- [ ] **T2.8**: Implement TaintMatcher
-- [ ] **T2.9**: Implement composite matcher that evaluates all criteria with AND logic
-- [ ] **T2.10**: Write unit tests for all matchers (target: >85% coverage)
+- [X] **T2.1**: Implement basic Reconcile loop (fetch rule, guard suspend, list resources, match, label, update status)
+- [X] **T2.2**: Implement MatchesPodDetailed for comprehensive Pod matching (common & pod-specific criteria)
+- [X] **T2.3**: Implement ApplyLabelsToObject for idempotent label patching
+- [X] **T2.4**: Implement SetCondition for status condition management
+- [X] **T2.5**: Add Pod RBAC markers (get, list, watch, update, patch)
+- [X] **T2.6**: Implement RefreshInterval parsing and RequeueAfter logic
+- [X] **T2.7**: Add detailed logging for label application (conditional on changes only)
+- [ ] **T2.8**: Write unit tests for matcher functions (>85% coverage target)
+- [ ] **T2.9**: Write integration tests for full Pod reconciliation scenarios
+- [ ] **T2.10**: Test with multiple classification rules and conflict handling
 
 ## Priority 3: Pod Classification Logic
-- [ ] **T3.1**: Create PodClassifier struct with Pod evaluation logic
-- [ ] **T3.2**: Implement Pod listing and filtering logic
-- [ ] **T3.3**: Implement Pod matching against ClassificationRule criteria
-- [ ] **T3.4**: Create PodLabelPatcher for non-destructive label application
-- [ ] **T3.5**: Implement label ownership tracking (annotation-based)
-- [ ] **T3.6**: Implement conflict detection for Pod labels
-- [ ] **T3.7**: Handle conflict resolution strategies (Overwrite, Merge, Ignore, Report)
-- [ ] **T3.8**: Implement Pod reconciliation in ClassificationRuleReconciler
-- [ ] **T3.9**: Add Pod event handlers to trigger reconciliation
-- [ ] **T3.10**: Write unit tests for PodClassifier
-- [ ] **T3.11**: Write integration tests for Pod labeling
+- [ ] **T3.1**: Implement Node classification (MatchesNodeDetailed)
+- [ ] **T3.2**: Add Node case to reconciler switch statement
+- [X] **T3.3**: Add Node RBAC markers in controller (get, list, watch, update, patch)
+- [ ] **T3.4**: Implement node-specific label patching
+- [ ] **T3.5**: Test Node labeling end-to-end
+- [ ] **T3.6**: Handle node taint and label matching edge cases
+- [ ] **T3.7**: Write unit and integration tests for Node classification
 
 ## Priority 4: Node Classification Logic
 - [ ] **T4.1**: Create NodeClassifier struct with Node evaluation logic
@@ -46,13 +43,13 @@
 - [ ] **T4.10**: Write unit tests for NodeClassifier
 - [ ] **T4.11**: Write integration tests for Node labeling
 
-## Priority 5: Status & Observability
-- [ ] **T5.1**: Implement status update logic in reconciler
-- [ ] **T5.2**: Populate matchedResourceCount during reconciliation
-- [ ] **T5.3**: Update lastReconciled timestamp
-- [ ] **T5.4**: Implement conflict tracking in status
-- [ ] **T5.5**: Implement error tracking in status
-- [ ] **T5.6**: Add Kubernetes conditions (Available, Progressing, Degraded)
+## Priority 5: Status & Observability ✅ PARTIALLY COMPLETE
+- [X] **T5.1**: Implement status update logic in reconciler
+- [X] **T5.2**: Populate matchedResourceCount during reconciliation
+- [X] **T5.3**: Implement condition tracking (Ready, Suspended, Degraded)
+- [X] **T5.4**: Update observedGeneration in status
+- [ ] **T5.5**: Add lastReconciled timestamp population
+- [ ] **T5.6**: Implement error tracking in status.lastError
 - [ ] **T5.7**: Create Prometheus metrics for rules processed
 - [ ] **T5.8**: Create Prometheus metrics for resources labeled
 - [ ] **T5.9**: Create Prometheus metrics for conflicts detected
@@ -61,15 +58,13 @@
 - [ ] **T5.12**: Implement proper logging throughout reconciliation
 
 ## Priority 6: RBAC & Security
-- [ ] **T6.1**: Review and update ClusterRole permissions
-- [ ] **T6.2**: Add permissions for Pod watching/patching
-- [ ] **T6.3**: Add permissions for Node watching/patching
+- [X] **T6.1**: Add Pod watching/patching RBAC markers
+- [X] **T6.2**: Add Node watching/patching RBAC markers
+- [ ] **T6.3**: Verify ClusterRole is properly generated from kubebuilder markers
 - [ ] **T6.4**: Add permissions for ServiceMonitor (Prometheus)
-- [ ] **T6.5**: Update ServiceAccount configuration
-- [ ] **T6.6**: Configure RoleBinding for RBAC
-- [ ] **T6.7**: Review network policies
-- [ ] **T6.8**: Ensure metrics endpoint is properly secured
-- [ ] **T6.9**: Test Pod Security Policy (Restricted) enforcement
+- [ ] **T6.5**: Test RBAC enforcement in actual cluster
+- [ ] **T6.6**: Review network policies
+- [ ] **T6.7**: Security audit
 
 ## Priority 7: Webhook Validation (Optional for v1)
 - [ ] **T7.1**: Create ValidatingWebhookConfiguration for ClassificationRule
@@ -134,6 +129,39 @@
 - Every feature should have corresponding unit and integration tests
 - Security should be reviewed at each priority level
 - Documentation should be updated alongside code changes
+
+---
+
+## Current Status
+**Last Updated**: 2025-12-15
+
+### ✅ Completed (Core v1alpha1 MVP)
+- CRD types with split-by-resource-type MatchCriteria in separate file
+- Basic reconciler with Pod matching and idempotent labeling
+- Condition-based status tracking (Ready, Suspended, Degraded)
+- RefreshInterval with configurable requeue intervals
+- Conditional logging (only logs when labels actually change)
+- RBAC markers for Pod/Node operations
+- Sample CR and test Pod manifest
+- Manual testing shows successful label application in Kind cluster
+
+### 🔄 In Progress
+- Testing and validation of current implementation
+- Manual e2e testing in local Kind cluster
+
+### ⏭️ Next Steps (High Priority)
+1. Write unit tests for matcher functions (MatchesPodDetailed, ApplyLabelsToObject)
+2. Integration tests for reconciliation scenarios
+3. Implement Node classification (MatchesNodeDetailed)
+4. Add lastReconciled timestamp population
+5. Performance testing with larger deployments
+
+**MILESTONE 1: ✅ CORE POD MATCHING (COMPLETE)**
+- Scaffold project and CRD ✅
+- Implement Pod labeling controller ✅
+- Apply labels based on simple metadata rules ✅
+- Status reporting ✅
+- Test in local cluster ✅
 
 
 MILESTONE 1:

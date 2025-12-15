@@ -1,0 +1,97 @@
+package helpers
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	autolabellerv1alpha1 "github.com/Joe-Bresee/Autolabeller/api/v1alpha1"
+)
+
+func SetCondition(rule *autolabellerv1alpha1.ClassificationRule, condType string, status metav1.ConditionStatus, reason, msg string) {
+	cond := metav1.Condition{
+		Type:               condType,
+		Status:             status,
+		ObservedGeneration: rule.GetGeneration(),
+		Reason:             reason,
+		Message:            msg,
+		LastTransitionTime: metav1.Now(),
+	}
+	replaced := false
+	for i := range rule.Status.Conditions {
+		if rule.Status.Conditions[i].Type == condType {
+			rule.Status.Conditions[i] = cond
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		rule.Status.Conditions = append(rule.Status.Conditions, cond)
+	}
+}
+
+func ApplyLabelsToObject(obj client.Object, labels map[string]string) bool {
+	if len(labels) == 0 {
+		return false
+	}
+	m := obj.GetLabels()
+	if m == nil {
+		m = map[string]string{}
+	}
+	changed := false
+	for k, v := range labels {
+		if m[k] != v {
+			m[k] = v
+			changed = true
+		}
+	}
+	if changed {
+		obj.SetLabels(m)
+	}
+	return changed
+}
+
+func FilterPodList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.MatchCriteria) {
+	if match == nil {
+		return
+	}
+
+	// CommonMatch filters
+	if cm := match.CommonMatch; cm != nil {
+		if cm.Namespace != "" {
+			*listOpts = append(*listOpts, client.InNamespace(cm.Namespace))
+		}
+		if len(cm.Labels) > 0 {
+			*listOpts = append(*listOpts, client.MatchingLabels(cm.Labels))
+		}
+	}
+}
+
+func FilterNodeList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.MatchCriteria) {
+	if match == nil {
+		return
+	}
+
+	// CommonMatch filters (namespace ignored for cluster-scoped Nodes)
+	if cm := match.CommonMatch; cm != nil {
+		if len(cm.Labels) > 0 {
+			*listOpts = append(*listOpts, client.MatchingLabels(cm.Labels))
+		}
+	}
+
+	// NodeMatch filters - only single-value arch/os labels can be server-side filtered
+	if nm := match.NodeMatch; nm != nil {
+		// Single arch value → exact label selector on kubernetes.io/arch
+		if len(nm.ArchLabels) == 1 {
+			*listOpts = append(*listOpts, client.MatchingLabels(map[string]string{
+				"kubernetes.io/arch": nm.ArchLabels[0],
+			}))
+		}
+		// Single OS value → exact label selector on kubernetes.io/os
+		if len(nm.OSLabels) == 1 {
+			*listOpts = append(*listOpts, client.MatchingLabels(map[string]string{
+				"kubernetes.io/os": nm.OSLabels[0],
+			}))
+		}
+		// Taints, kernelVersion, containerRuntime → in-memory only via MatchesNodeDetailed
+	}
+}

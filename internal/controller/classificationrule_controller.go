@@ -30,7 +30,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	autolabellerv1alpha1 "github.com/Joe-Bresee/Autolabeller/api/v1alpha1"
-	. "github.com/Joe-Bresee/Autolabeller/internal/controller/helpers"
+	"github.com/Joe-Bresee/Autolabeller/internal/controller/helpers"
+	"github.com/Joe-Bresee/Autolabeller/internal/controller/matchinglogic"
 )
 
 // ClassificationRuleReconciler reconciles a ClassificationRule object
@@ -64,32 +65,31 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Guard suspend
 	if rule.Spec.Suspend {
-		SetCondition(&rule, "Suspended", metav1.ConditionTrue, "RuleSuspended", "Rule is suspended")
+		helpers.SetCondition(&rule, "Suspended", metav1.ConditionTrue, "RuleSuspended", "Rule is suspended")
 		_ = r.Status().Update(ctx, &rule)
 		return ctrl.Result{}, nil
 	}
 
+	// FIX need improved either kubebuilder validations or field checking here. ex: namespace is +optional, but assumed here.
 	matched := int32(0)
 	switch rule.Spec.TargetKind {
 	case "Pod":
 		var pods corev1.PodList
 		listOpts := []client.ListOption{}
 		if rule.Spec.Match != nil && rule.Spec.Match.CommonMatch != nil {
-			ns := rule.Spec.Match.CommonMatch.Namespace
-			if ns != "" {
-				listOpts = append(listOpts, client.InNamespace(ns))
-			}
+			// filter listing options
+			helpers.FilterPodList(&listOpts, rule.Spec.Match)
 		}
 		if err := r.List(ctx, &pods, listOpts...); err != nil {
-			SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list pods: %v", err))
+			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list pods: %v", err))
 			_ = r.Status().Update(ctx, &rule)
 			return ctrl.Result{}, err
 		}
 		for i := range pods.Items {
 			pod := &pods.Items[i]
-			if ok, fields := MatchesPodDetailed(rule.Spec.Match, pod); ok {
-				log.Info("pod matched criteria", "pod", client.ObjectKeyFromObject(pod), "matchedFields", fields)
-				if ApplyLabelsToObject(pod, rule.Spec.Labels) {
+			if ok, fields := matchinglogic.MatchesPodDetailed(rule.Spec.Match, pod); ok {
+				if helpers.ApplyLabelsToObject(pod, rule.Spec.Labels) {
+					log.Info("pod matched criteria, applying labels", "pod", client.ObjectKeyFromObject(pod), "matchedFields", fields)
 					if err := r.Update(ctx, pod); err != nil {
 						log.Error(err, "failed to update pod labels", "pod", client.ObjectKeyFromObject(pod))
 						continue
@@ -98,15 +98,40 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 				}
 			}
 		}
+	case "Node":
+		var nodes corev1.NodeList
+		listOpts := []client.ListOption{}
+		if rule.Spec.Match != nil && rule.Spec.Match.NodeMatch != nil {
+			//
+		}
+		if err := r.List(ctx, &nodes, listOpts...); err != nil {
+			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list nodes: %v", err))
+			_ = r.Status().Update(ctx, &rule)
+			return ctrl.Result{}, err
+		}
+		for i := range nodes.Items {
+			node := &nodes.Items[i]
+			if ok, fields := matchinglogic.MatchesNodeDetailed(rule.Spec.Match, node); ok {
+				if helpers.ApplyLabelsToObject(node, rule.Spec.Labels) {
+					log.Info("node matched criteria, applying labels", "node", client.ObjectKeyFromObject(node), "matchedFields", fields)
+					if err := r.Update(ctx, node); err != nil {
+						log.Error(err, "failed to update node labels", "node", client.ObjectKeyFromObject(node))
+						continue
+					}
+					matched++
+				}
+			}
+		}
+
 	default:
-		SetCondition(&rule, "Ready", metav1.ConditionFalse, "UnsupportedTarget", fmt.Sprintf("TargetKind %s not yet implemented", rule.Spec.TargetKind))
+		helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UnsupportedTarget", fmt.Sprintf("TargetKind %s not yet implemented", rule.Spec.TargetKind))
 		_ = r.Status().Update(ctx, &rule)
 		return ctrl.Result{}, nil
 	}
 
 	rule.Status.MatchedResourcesCount = matched
 	rule.Status.ObservedGeneration = rule.GetGeneration()
-	SetCondition(&rule, "Ready", metav1.ConditionTrue, "Applied", fmt.Sprintf("Applied labels to %d resources", matched))
+	helpers.SetCondition(&rule, "Ready", metav1.ConditionTrue, "Applied", fmt.Sprintf("Applied labels to %d resources", matched))
 	if err := r.Status().Update(ctx, &rule); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -116,7 +141,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if rule.Spec.RefreshInterval != "" {
 		d, err := time.ParseDuration(rule.Spec.RefreshInterval)
 		if err != nil {
-			SetCondition(&rule, "Degraded", metav1.ConditionTrue, "InvalidRefreshInterval", "RefreshInterval must be a valid duration (e.g. 30s, 5m)")
+			helpers.SetCondition(&rule, "Degraded", metav1.ConditionTrue, "InvalidRefreshInterval", "RefreshInterval must be a valid duration (e.g. 30s, 5m)")
 			_ = r.Status().Update(ctx, &rule)
 			return ctrl.Result{}, nil
 		}
