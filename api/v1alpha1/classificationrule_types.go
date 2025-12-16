@@ -21,6 +21,7 @@ import (
 )
 
 // ClassificationRuleSpec defines the desired state of ClassificationRule
+// +kubebuilder:validation:XValidation:rule="self.targetKind != 'Node' || self.match == null || self.match.commonMatch == null || self.match.commonMatch.namespace == \"\"",message="commonMatch.namespace must be empty when targetKind is Node"
 type ClassificationRuleSpec struct {
 
 	// TargetKind specifies the Kubernetes resource type to apply the rule to
