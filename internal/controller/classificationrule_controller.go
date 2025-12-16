@@ -66,7 +66,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Guard suspend
 	if rule.Spec.Suspend {
-		helpers.SetCondition(&rule, "Suspended", metav1.ConditionTrue, "RuleSuspended", "Rule is suspended")
+		helpers.SetConditionWithLog(log, &rule, "Suspended", metav1.ConditionTrue, "RuleSuspended", "Rule is suspended")
 		_ = r.Status().Update(ctx, &rule)
 		return ctrl.Result{}, nil
 	}
@@ -81,7 +81,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 			helpers.FilterPodList(&listOpts, rule.Spec.Match)
 		}
 		if err := r.List(ctx, &pods, listOpts...); err != nil {
-			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list pods: %v", err))
+			helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list pods: %v", err))
 			_ = r.Status().Update(ctx, &rule)
 			return ctrl.Result{}, err
 		}
@@ -91,7 +91,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 				if helpers.ApplyLabelsToObject(pod, rule.Spec.Labels) {
 					log.Info("pod matched criteria, applying labels", "pod", client.ObjectKeyFromObject(pod), "matchedFields", fields)
 					if err := r.Update(ctx, pod); err != nil {
-						helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update pod labels: %v", err))
+						helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update pod labels: %v", err))
 						_ = r.Status().Update(ctx, &rule)
 						continue
 					}
@@ -103,13 +103,13 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 		var nodes corev1.NodeList
 		listOpts := []client.ListOption{}
 		if rule.Spec.Match != nil && rule.Spec.Match.CommonMatch != nil && rule.Spec.Match.CommonMatch.Namespace != "" {
-			helpers.SetCondition(&rule, "Degraded", metav1.ConditionTrue, "NamespaceIgnoredForNode", "commonMatch.namespace is ignored for Node targetKind")
+			helpers.SetConditionWithLog(log, &rule, "Degraded", metav1.ConditionTrue, "NamespaceIgnoredForNode", "commonMatch.namespace is ignored for Node targetKind")
 		}
 		if rule.Spec.Match != nil && rule.Spec.Match.NodeMatch != nil {
 			helpers.FilterNodeList(&listOpts, rule.Spec.Match)
 		}
 		if err := r.List(ctx, &nodes, listOpts...); err != nil {
-			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list nodes: %v", err))
+			helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list nodes: %v", err))
 			_ = r.Status().Update(ctx, &rule)
 			return ctrl.Result{}, err
 		}
@@ -119,7 +119,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 				if helpers.ApplyLabelsToObject(node, rule.Spec.Labels) {
 					log.Info("node matched criteria, applying labels", "node", client.ObjectKeyFromObject(node), "matchedFields", fields)
 					if err := r.Update(ctx, node); err != nil {
-						helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update node labels: %v", err))
+						helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update node labels: %v", err))
 						_ = r.Status().Update(ctx, &rule)
 						continue
 					}
@@ -134,7 +134,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 			helpers.FilterPodList(&listOpts, rule.Spec.Match)
 		}
 		if err := r.List(ctx, &deployments, listOpts...); err != nil {
-			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list deployments: %v", err))
+			helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list deployments: %v", err))
 			_ = r.Status().Update(ctx, &rule)
 			return ctrl.Result{}, err
 		}
@@ -144,7 +144,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 				if helpers.ApplyLabelsToObject(deployment, rule.Spec.Labels) {
 					log.Info("deployment matched criteria, applying labels", "deployment", client.ObjectKeyFromObject(deployment), "matchedFields", fields)
 					if err := r.Update(ctx, deployment); err != nil {
-						helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update deployment labels: %v", err))
+						helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update deployment labels: %v", err))
 						_ = r.Status().Update(ctx, &rule)
 						continue
 					}
@@ -153,14 +153,14 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 			}
 		}
 	default:
-		helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UnsupportedTarget", fmt.Sprintf("TargetKind %s not yet implemented", rule.Spec.TargetKind))
+		helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionFalse, "UnsupportedTarget", fmt.Sprintf("TargetKind %s not yet implemented", rule.Spec.TargetKind))
 		_ = r.Status().Update(ctx, &rule)
 		return ctrl.Result{}, nil
 	}
 
 	rule.Status.MatchedResourcesCount = matched
 	rule.Status.ObservedGeneration = rule.GetGeneration()
-	helpers.SetCondition(&rule, "Ready", metav1.ConditionTrue, "Applied", fmt.Sprintf("Applied labels to %d resources", matched))
+	helpers.SetConditionWithLog(log, &rule, "Ready", metav1.ConditionTrue, "Applied", fmt.Sprintf("Applied labels to %d resources", matched))
 	if err := r.Status().Update(ctx, &rule); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -170,7 +170,7 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if rule.Spec.RefreshInterval != "" {
 		d, err := time.ParseDuration(rule.Spec.RefreshInterval)
 		if err != nil {
-			helpers.SetCondition(&rule, "Degraded", metav1.ConditionTrue, "InvalidRefreshInterval", "RefreshInterval must be a valid duration (e.g. 30s, 5m)")
+			helpers.SetConditionWithLog(log, &rule, "Degraded", metav1.ConditionTrue, "InvalidRefreshInterval", "RefreshInterval must be a valid duration (e.g. 30s, 5m)")
 			_ = r.Status().Update(ctx, &rule)
 			return ctrl.Result{}, nil
 		}

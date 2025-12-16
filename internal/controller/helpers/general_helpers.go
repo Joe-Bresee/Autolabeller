@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -29,6 +30,13 @@ func SetCondition(rule *autolabellerv1alpha1.ClassificationRule, condType string
 	if !replaced {
 		rule.Status.Conditions = append(rule.Status.Conditions, cond)
 	}
+}
+
+// SetConditionWithLog sets a condition on the rule and logs the reason/message.
+// Prefer this helper in controllers to ensure user-visible status and operator logs stay in sync.
+func SetConditionWithLog(logger logr.Logger, rule *autolabellerv1alpha1.ClassificationRule, condType string, status metav1.ConditionStatus, reason, msg string) {
+	SetCondition(rule, condType, status, reason, msg)
+	logger.Info("condition updated", "type", condType, "status", string(status), "reason", reason, "message", msg)
 }
 
 func ApplyLabelsToObject(obj client.Object, labels map[string]string) bool {
