@@ -196,3 +196,8 @@ Add Service/Namespace matchers (simpler—mostly common criteria)
 Tackle workload resources (StatefulSet, DaemonSet, etc.) using similar patterns
 Current state: Pod & Node are functionally complete for filtering. Deployment is next logical target since match criteria already exist.
 
+
+
+node add nore-role ex: control-plane=
+hostanme?
+support for beta.kubernetes.io/arch= and os= ""

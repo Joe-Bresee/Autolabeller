@@ -1,0 +1,14 @@
+apiVersion: autolabeller.autolabeller.github.com/v1alpha1
+kind: ClassificationRule
+metadata:
+  name: label-control-plane-nodes
+  namespace: autolabeller-system
+spec:
+  targetKind: Node
+  match:
+    commonMatch:
+      labels:
+        node-role.kubernetes.io/control-plane: ""
+  labels:
+    tested-by: autolabeller
+    node-type: funny

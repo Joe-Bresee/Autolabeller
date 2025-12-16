@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: superfunnynode
+  labels:
+    app: mynode
+    kubernetes.io/arch: amd64
+    kubernetes.io/os: linux
+spec:
+  taints:
+    - key: dedicated
+      value: funny
+      effect: NoSchedule
