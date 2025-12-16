@@ -70,7 +70,6 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// FIX need improved either kubebuilder validations or field checking here. ex: namespace is +optional, but assumed here.
 	matched := int32(0)
 	switch rule.Spec.TargetKind {
 	case "Pod":

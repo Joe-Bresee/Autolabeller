@@ -12,6 +12,7 @@ type CommonMatchCriteria struct {
 
 	// Namespace is the namespace name to match. Exact string match.
 	// +optional
+	//  +kubebuilder:validation:XValidation:rule="self.targetKind != 'Node' || self.match == null || self.match.commonMatch == null || self.match.commonMatch.namespace == ''",message="commonMatch.namespace must be empty when targetKind is Node"
 	Namespace string `json:"namespace,omitempty"`
 
 	// Name is the resource name to match. Supports wildcard patterns (* and ?).
