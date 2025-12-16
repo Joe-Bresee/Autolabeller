@@ -222,10 +222,6 @@ spec:
             required:
             - targetKind
             type: object
-            x-kubernetes-validations:
-            - message: commonMatch.namespace must be empty when targetKind is Node
-              rule: self.targetKind != 'Node' || self.match == null || self.match.commonMatch
-                == null || self.match.commonMatch.namespace == ""
           status:
             description: status defines the observed state of ClassificationRule
             properties:
