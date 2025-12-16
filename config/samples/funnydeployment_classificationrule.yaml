@@ -1,0 +1,19 @@
+apiVersion: autolabeller.autolabeller.github.com/v1alpha1
+kind: ClassificationRule
+metadata:
+  name: label-funny-deployments
+  namespace: autolabeller-system
+spec:
+  targetKind: Deployment
+  match:
+    commonMatch:
+      labels:
+        app: mydeployment
+    deploymentMatch:
+      strategy: RollingUpdate
+      imagePullPolicy: IfNotPresent
+  labels:
+    tested-by: autolabeller
+    deployment-type: funny
+  refreshInterval: 30s
+  suspend: false

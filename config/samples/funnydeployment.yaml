@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superfunny-deployment
+  namespace: autolabeller-system
+  labels:
+    app: mydeployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mydeployment
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: mydeployment
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: busybox
+          image: busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c", "echo funny && sleep 3600"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"

@@ -16,6 +16,16 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - autolabeller.autolabeller.github.com
   resources:
   - classificationrules
