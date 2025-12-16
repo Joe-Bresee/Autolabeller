@@ -21,12 +21,12 @@
 - [ ] **T2.9**: Write integration tests for full Pod reconciliation scenarios
 - [ ] **T2.10**: Test with multiple classification rules and conflict handling
 
-## Priority 3: Pod Classification Logic
-- [ ] **T3.1**: Implement Node classification (MatchesNodeDetailed)
-- [ ] **T3.2**: Add Node case to reconciler switch statement
+## Priority 3: Pod & Node Classification Logic ✅ PARTIALLY COMPLETE
+- [X] **T3.1**: Implement Node classification (MatchesNodeDetailed)
+- [X] **T3.2**: Add Node case to reconciler switch statement
 - [X] **T3.3**: Add Node RBAC markers in controller (get, list, watch, update, patch)
-- [ ] **T3.4**: Implement node-specific label patching
-- [ ] **T3.5**: Test Node labeling end-to-end
+- [X] **T3.4**: Implement node-specific label patching
+- [X] **T3.5**: Test Node labeling end-to-end
 - [ ] **T3.6**: Handle node taint and label matching edge cases
 - [ ] **T3.7**: Write unit and integration tests for Node classification
 
@@ -55,12 +55,12 @@
 - [ ] **T5.9**: Create Prometheus metrics for conflicts detected
 - [ ] **T5.10**: Create Prometheus metrics for reconciliation duration
 - [ ] **T5.11**: Create Prometheus metrics for errors
-- [ ] **T5.12**: Implement proper logging throughout reconciliation
+- [X] **T5.12**: Implement proper logging throughout reconciliation
 
-## Priority 6: RBAC & Security
+## Priority 6: RBAC & Security ✅ PARTIALLY COMPLETE
 - [X] **T6.1**: Add Pod watching/patching RBAC markers
 - [X] **T6.2**: Add Node watching/patching RBAC markers
-- [ ] **T6.3**: Verify ClusterRole is properly generated from kubebuilder markers
+- [X] **T6.3**: Verify ClusterRole is properly generated from kubebuilder markers
 - [ ] **T6.4**: Add permissions for ServiceMonitor (Prometheus)
 - [ ] **T6.5**: Test RBAC enforcement in actual cluster
 - [ ] **T6.6**: Review network policies
@@ -109,7 +109,8 @@
 - [ ] **T10.10**: Verify graceful shutdown behavior
 
 ## Priority 11: Future Enhancements
-- [ ] **T11.1**: Support additional resource types (Deployments, Jobs, StatefulSets, PVCs)
+- [X] **T11.1**: Support additional resource types (Deployments)
+- [ ] **T11.1b**: Add support for Jobs, StatefulSets, PVCs
 - [ ] **T11.2**: Implement webhooks for validation and mutation
 - [ ] **T11.3**: Add support for runtime metrics (future extension)
 - [ ] **T11.4**: Implement rule templating/parameterization
@@ -133,7 +134,7 @@
 ---
 
 ## Current Status
-**Last Updated**: 2025-12-15
+**Last Updated**: 2025-12-16
 
 ### ✅ Completed (Core v1alpha1 MVP)
 - CRD types with split-by-resource-type MatchCriteria in separate file
@@ -141,20 +142,23 @@
 - Condition-based status tracking (Ready, Suspended, Degraded)
 - RefreshInterval with configurable requeue intervals
 - Conditional logging (only logs when labels actually change)
-- RBAC markers for Pod/Node operations
+- RBAC markers for Pod/Node/Deployment operations
+- Deployment matching implemented; sample manifests validated
 - Sample CR and test Pod manifest
 - Manual testing shows successful label application in Kind cluster
 
 ### 🔄 In Progress
 - Testing and validation of current implementation
 - Manual e2e testing in local Kind cluster
+- Add unit tests for Node/Deployment matchers
+- Add FilterDeploymentList helper for consistency
 
 ### ⏭️ Next Steps (High Priority)
-1. Write unit tests for matcher functions (MatchesPodDetailed, ApplyLabelsToObject)
+1. Write unit tests for matcher functions (Pod/Node/Deployment)
 2. Integration tests for reconciliation scenarios
-3. Implement Node classification (MatchesNodeDetailed)
-4. Add lastReconciled timestamp population
-5. Performance testing with larger deployments
+3. Add lastReconciled timestamp population
+4. Performance testing with larger deployments
+5. Implement FilterDeploymentList and adopt in controller
 
 **MILESTONE 1: ✅ CORE POD MATCHING (COMPLETE)**
 - Scaffold project and CRD ✅
@@ -174,30 +178,39 @@ Test in local cluster
 
 Immediate tasks (current feature completion):
 
-Wire up filter helpers in controller - Already done (Pod & Node cases call FilterPodList/FilterNodeList)
-Test the filters - Verify namespace/label selectors actually reduce list results
-Handle edge cases - Empty match criteria, nil checks (already covered in helpers)
+- Wire up filter helpers in controller - Pod & Node done; Deployment pending FilterDeploymentList
+- Test the filters - Verify namespace/label selectors reduce list results
+- Handle edge cases - Empty match criteria, nil checks (helpers cover most)
+
 Next priority resources to implement (from TargetKind enum & todo):
 
-Deployment - Has DeploymentMatchCriteria defined but no matcher/filter/reconciler case
-Namespace - Listed in TargetKind enum, no match criteria yet
-Service - Listed in TargetKind enum, no match criteria yet
-StatefulSet, DaemonSet, ReplicaSet - Listed in TargetKind enum, no match criteria yet
-Job, CronJob - Listed in TargetKind enum, no match criteria yet
+- Namespace, Service (mostly common criteria)
+- StatefulSet, DaemonSet, ReplicaSet
+- Job, CronJob
+
 Recommended next steps:
 
-Test current Pod/Node filtering works correctly
-Implement Deployment matching (already has DeploymentMatchCriteria spec):
-Create matchinglogic/deployment_match.go with MatchesDeploymentDetailed
-Create FilterDeploymentList helper (namespace + labels only)
-Add Deployment case to reconciler switch
-Add RBAC markers for Deployments
-Add Service/Namespace matchers (simpler—mostly common criteria)
-Tackle workload resources (StatefulSet, DaemonSet, etc.) using similar patterns
-Current state: Pod & Node are functionally complete for filtering. Deployment is next logical target since match criteria already exist.
+- Test current Pod/Node/Deployment filtering and matching
+- Implement FilterDeploymentList helper (namespace + labels)
+- Add Service/Namespace matchers
+- Tackle additional workload resources using similar patterns
+
+Current state: Pod, Node, and Deployment are functionally working; samples validated in cluster.
 
 
 
 node add nore-role ex: control-plane=
 hostanme?
 support for beta.kubernetes.io/arch= and os= ""
+jobs and cronjobs resource support
+statefulsets/daemonsets
+services/networking
+namespaces themselves
+ingress/gateway
+pvc
+pv
+cm and secrets
+hooks?
+label taxonomy tips: ownership for rbac and rolebindings, environments, capability (gpu=true), baCkuip/retention/policy, workflow stage build/test/int/deploy etc.
+
+**buy yogaball**
