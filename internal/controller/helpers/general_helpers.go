@@ -120,3 +120,21 @@ func FilterNodeList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.M
 		}
 	}
 }
+
+func FilterDeploymentList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.MatchCriteria) {
+	if match == nil {
+		return
+	}
+
+	// CommonMatch filters applied at API level (reduces objects fetched, in turn reducing memory load and API calls)
+	// Name patterns are checked later in MatchesDeploymentDetailed (requires in-memory inspection)
+	// Annotations are checked later in MatchesDeploymentDetailed (requires in-memory inspection)
+	if cm := match.CommonMatch; cm != nil {
+		if cm.Namespace != "" {
+			*listOpts = append(*listOpts, client.InNamespace(cm.Namespace))
+		}
+		if len(cm.Labels) > 0 {
+			*listOpts = append(*listOpts, client.MatchingLabels(cm.Labels))
+		}
+	}
+}

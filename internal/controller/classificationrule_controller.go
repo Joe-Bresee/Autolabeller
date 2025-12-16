@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,7 +91,8 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 				if helpers.ApplyLabelsToObject(pod, rule.Spec.Labels) {
 					log.Info("pod matched criteria, applying labels", "pod", client.ObjectKeyFromObject(pod), "matchedFields", fields)
 					if err := r.Update(ctx, pod); err != nil {
-						log.Error(err, "failed to update pod labels", "pod", client.ObjectKeyFromObject(pod))
+						helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update pod labels: %v", err))
+						_ = r.Status().Update(ctx, &rule)
 						continue
 					}
 					matched++
@@ -117,14 +119,39 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 				if helpers.ApplyLabelsToObject(node, rule.Spec.Labels) {
 					log.Info("node matched criteria, applying labels", "node", client.ObjectKeyFromObject(node), "matchedFields", fields)
 					if err := r.Update(ctx, node); err != nil {
-						log.Error(err, "failed to update node labels", "node", client.ObjectKeyFromObject(node))
+						helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update node labels: %v", err))
+						_ = r.Status().Update(ctx, &rule)
 						continue
 					}
 					matched++
 				}
 			}
 		}
-
+	case "Deployment":
+		var deployments appsv1.DeploymentList
+		listOpts := []client.ListOption{}
+		if rule.Spec.Match != nil && rule.Spec.Match.CommonMatch != nil {
+			helpers.FilterPodList(&listOpts, rule.Spec.Match)
+		}
+		if err := r.List(ctx, &deployments, listOpts...); err != nil {
+			helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "ListFailed", fmt.Sprintf("Failed to list deployments: %v", err))
+			_ = r.Status().Update(ctx, &rule)
+			return ctrl.Result{}, err
+		}
+		for i := range deployments.Items {
+			deployment := &deployments.Items[i]
+			if ok, fields := matchinglogic.MatchesDeploymentDetailed(rule.Spec.Match, deployment); ok {
+				if helpers.ApplyLabelsToObject(deployment, rule.Spec.Labels) {
+					log.Info("deployment matched criteria, applying labels", "deployment", client.ObjectKeyFromObject(deployment), "matchedFields", fields)
+					if err := r.Update(ctx, deployment); err != nil {
+						helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UpdateFailed", fmt.Sprintf("Failed to update deployment labels: %v", err))
+						_ = r.Status().Update(ctx, &rule)
+						continue
+					}
+					matched++
+				}
+			}
+		}
 	default:
 		helpers.SetCondition(&rule, "Ready", metav1.ConditionFalse, "UnsupportedTarget", fmt.Sprintf("TargetKind %s not yet implemented", rule.Spec.TargetKind))
 		_ = r.Status().Update(ctx, &rule)
