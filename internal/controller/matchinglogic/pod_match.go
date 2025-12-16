@@ -9,6 +9,8 @@ import (
 )
 
 // MatchesPodDetailed returns whether the pod matches and a list of fields that matched.
+// Note: Namespace and CommonMatch.Labels are pre-filtered by FilterPodList, so we only check items
+// that require in-memory inspection (name patterns, annotations, pod-specific criteria).
 func MatchesPodDetailed(mc *autolabellerv1alpha1.MatchCriteria, pod *corev1.Pod) (bool, []string) {
 	matchedFields := []string{}
 	if mc == nil {
@@ -16,23 +18,12 @@ func MatchesPodDetailed(mc *autolabellerv1alpha1.MatchCriteria, pod *corev1.Pod)
 	}
 
 	if cm := mc.CommonMatch; cm != nil {
-		if ns := cm.Namespace; ns != "" {
-			if pod.Namespace != ns {
-				return false, matchedFields
-			}
-			matchedFields = append(matchedFields, "commonMatch.namespace")
-		}
+		// Namespace and Labels are already pre-filtered by FilterPodList, skip them here
 		if name := cm.Name; name != "" {
 			if pod.Name != name {
 				return false, matchedFields
 			}
 			matchedFields = append(matchedFields, "commonMatch.name")
-		}
-		for k, v := range cm.Labels {
-			if pod.Labels[k] != v {
-				return false, matchedFields
-			}
-			matchedFields = append(matchedFields, fmt.Sprintf("commonMatch.labels[%s]", k))
 		}
 		for k, v := range cm.Annotations {
 			if pod.Annotations[k] != v {

@@ -57,7 +57,9 @@ func FilterPodList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.Ma
 		return
 	}
 
-	// CommonMatch filters
+	// CommonMatch filters applied at API level (reduces objects fetched)
+	// Name patterns are checked later in MatchesPodDetailed (requires in-memory inspection)
+	// Annotations are checked later in MatchesPodDetailed (requires in-memory inspection)
 	if cm := match.CommonMatch; cm != nil {
 		if cm.Namespace != "" {
 			*listOpts = append(*listOpts, client.InNamespace(cm.Namespace))
@@ -73,14 +75,17 @@ func FilterNodeList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.M
 		return
 	}
 
-	// CommonMatch filters (namespace ignored for cluster-scoped Nodes)
+	// CommonMatch filters applied at API level (cluster-scoped, so no namespace)
+	// Name patterns are checked later in MatchesNodeDetailed (requires in-memory inspection)
+	// Annotations are checked later in MatchesNodeDetailed (requires in-memory inspection)
 	if cm := match.CommonMatch; cm != nil {
 		if len(cm.Labels) > 0 {
 			*listOpts = append(*listOpts, client.MatchingLabels(cm.Labels))
 		}
 	}
 
-	// NodeMatch filters - single or multi-value arch/os label filtering
+	// NodeMatch filters - single or multi-value arch/os label filtering applied at API level
+	// Taints, KernelVersion, ContainerRuntime are checked later in MatchesNodeDetailed (requires in-memory inspection)
 	if nm := match.NodeMatch; nm != nil {
 		// Single arch value → exact label selector
 		if len(nm.ArchLabels) == 1 {
@@ -113,7 +118,5 @@ func FilterNodeList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.M
 		if added {
 			*listOpts = append(*listOpts, client.MatchingLabelsSelector{Selector: selector})
 		}
-
-		// Taints, kernelVersion, containerRuntime → in-memory via MatchesNodeDetailed
 	}
 }

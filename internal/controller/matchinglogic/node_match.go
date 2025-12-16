@@ -10,7 +10,8 @@ import (
 )
 
 // MatchesNodeDetailed returns whether the node matches and a list of fields that matched.
-// It mirrors the Pod matcher but uses NodeMatchCriteria fields.
+// Note: CommonMatch.Labels and NodeMatch.ArchLabels/OSLabels are pre-filtered by FilterNodeList,
+// so we only check items that require in-memory inspection (name patterns, annotations, taints, kernel, runtime).
 func MatchesNodeDetailed(mc *autolabellerv1alpha1.MatchCriteria, node *corev1.Node) (bool, []string) {
 	matchedFields := []string{}
 	if mc == nil {
@@ -18,17 +19,12 @@ func MatchesNodeDetailed(mc *autolabellerv1alpha1.MatchCriteria, node *corev1.No
 	}
 
 	if cm := mc.CommonMatch; cm != nil {
+		// Labels are already pre-filtered by FilterNodeList, skip them here
 		if name := cm.Name; name != "" {
 			if node.Name != name {
 				return false, matchedFields
 			}
 			matchedFields = append(matchedFields, "commonMatch.name")
-		}
-		for k, v := range cm.Labels {
-			if node.Labels[k] != v {
-				return false, matchedFields
-			}
-			matchedFields = append(matchedFields, fmt.Sprintf("commonMatch.labels[%s]", k))
 		}
 		for k, v := range cm.Annotations {
 			if node.Annotations[k] != v {
@@ -39,37 +35,7 @@ func MatchesNodeDetailed(mc *autolabellerv1alpha1.MatchCriteria, node *corev1.No
 	}
 
 	if nm := mc.NodeMatch; nm != nil {
-		// Architecture label match (kubernetes.io/arch)
-		if len(nm.ArchLabels) > 0 {
-			nodeArch := node.Labels["kubernetes.io/arch"]
-			found := false
-			for _, want := range nm.ArchLabels {
-				if nodeArch == want {
-					found = true
-					matchedFields = append(matchedFields, fmt.Sprintf("nodeMatch.archLabels:%s", want))
-					break
-				}
-			}
-			if !found {
-				return false, matchedFields
-			}
-		}
-
-		// OS label match (kubernetes.io/os)
-		if len(nm.OSLabels) > 0 {
-			nodeOS := node.Labels["kubernetes.io/os"]
-			found := false
-			for _, want := range nm.OSLabels {
-				if nodeOS == want {
-					found = true
-					matchedFields = append(matchedFields, fmt.Sprintf("nodeMatch.osLabels:%s", want))
-					break
-				}
-			}
-			if !found {
-				return false, matchedFields
-			}
-		}
+		// Architecture and OS labels are already pre-filtered by FilterNodeList, skip them here
 
 		// Taints match (expects key=value:effect)
 		if len(nm.Taints) > 0 {

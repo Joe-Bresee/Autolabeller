@@ -1,4 +1,4 @@
-apiVersion: autolabeller.autolabeller.github.com/v1alpha1
+fapiVersion: autolabeller.autolabeller.github.com/v1alpha1
 kind: ClassificationRule
 metadata:
   name: label-control-plane-nodes
