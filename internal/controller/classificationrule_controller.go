@@ -100,6 +100,9 @@ func (r *ClassificationRuleReconciler) Reconcile(ctx context.Context, req ctrl.R
 	case "Node":
 		var nodes corev1.NodeList
 		listOpts := []client.ListOption{}
+		if rule.Spec.Match != nil && rule.Spec.Match.CommonMatch != nil && rule.Spec.Match.CommonMatch.Namespace != "" {
+			helpers.SetCondition(&rule, "Degraded", metav1.ConditionTrue, "NamespaceIgnoredForNode", "commonMatch.namespace is ignored for Node targetKind")
+		}
 		if rule.Spec.Match != nil && rule.Spec.Match.NodeMatch != nil {
 			helpers.FilterNodeList(&listOpts, rule.Spec.Match)
 		}

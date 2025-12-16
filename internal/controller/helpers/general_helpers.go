@@ -2,6 +2,8 @@ package helpers
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	autolabellerv1alpha1 "github.com/Joe-Bresee/Autolabeller/api/v1alpha1"
@@ -78,20 +80,40 @@ func FilterNodeList(listOpts *[]client.ListOption, match *autolabellerv1alpha1.M
 		}
 	}
 
-	// NodeMatch filters - only single-value arch/os labels can be server-side filtered
+	// NodeMatch filters - single or multi-value arch/os label filtering
 	if nm := match.NodeMatch; nm != nil {
-		// Single arch value → exact label selector on kubernetes.io/arch
+		// Single arch value → exact label selector
 		if len(nm.ArchLabels) == 1 {
 			*listOpts = append(*listOpts, client.MatchingLabels(map[string]string{
 				"kubernetes.io/arch": nm.ArchLabels[0],
 			}))
 		}
-		// Single OS value → exact label selector on kubernetes.io/os
+		// Single OS value → exact label selector
 		if len(nm.OSLabels) == 1 {
 			*listOpts = append(*listOpts, client.MatchingLabels(map[string]string{
 				"kubernetes.io/os": nm.OSLabels[0],
 			}))
 		}
-		// Taints, kernelVersion, containerRuntime → in-memory only via MatchesNodeDetailed
+
+		// Multi-value arch/os → set-based selectors with OR semantics
+		selector := labels.NewSelector()
+		added := false
+		if len(nm.ArchLabels) > 1 {
+			if req, err := labels.NewRequirement("kubernetes.io/arch", selection.In, nm.ArchLabels); err == nil {
+				selector = selector.Add(*req)
+				added = true
+			}
+		}
+		if len(nm.OSLabels) > 1 {
+			if req, err := labels.NewRequirement("kubernetes.io/os", selection.In, nm.OSLabels); err == nil {
+				selector = selector.Add(*req)
+				added = true
+			}
+		}
+		if added {
+			*listOpts = append(*listOpts, client.MatchingLabelsSelector{Selector: selector})
+		}
+
+		// Taints, kernelVersion, containerRuntime → in-memory via MatchesNodeDetailed
 	}
 }
